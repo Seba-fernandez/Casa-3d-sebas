@@ -4,7 +4,13 @@ import { db, isOwner, noStore, validateContent } from './_lib/server.js'
 
 export default async function handler(req, res) {
   noStore(res)
-  const supa = db()
+  let supa
+  try {
+    supa = db()
+  } catch (err) {
+    // falta configurar Supabase en Vercel: la casa usa su copia local
+    return res.status(503).json({ error: 'not-configured', message: String(err.message || err) })
+  }
 
   if (req.method === 'GET') {
     const { data, error } = await supa.from('casa_content').select('data, updated_at').eq('id', 'main').maybeSingle()
