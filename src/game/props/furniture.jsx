@@ -133,7 +133,7 @@ export function FloorLamp({ position = [0, 0, 0], color = C.butter, light = true
         <sphereGeometry args={[0.08, 12, 8]} />
         <meshBasicMaterial color="#FFF3C4" />
       </mesh>
-      {light && <pointLight position={[0, 1.4, 0]} intensity={4} distance={5} decay={1.6} color="#FFD9A0" />}
+      {light && <pointLight position={[0, 1.35, 0]} intensity={2.2} distance={4.2} decay={1.8} color="#FFD9A0" />}
     </group>
   )
 }

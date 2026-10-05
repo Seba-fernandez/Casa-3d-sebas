@@ -1,9 +1,9 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { RBox, Ball, Label, Toon, Spark, useItem, useSpawn, wallPoint, useRoom } from '../kit'
 import { player, useGame } from '../../store'
-import { C } from '../../theme'
+import { C, ROOM_THEME } from '../../theme'
 
 /**
  * Puerta entre habitaciones. Se dibuja en coordenadas locales de la pared
@@ -37,11 +37,7 @@ export function Door({ side, at = 0, to, label, color = C.orange, onUse, locked 
 
   return (
     <group position={[at, 0, 0]}>
-      {/* hueco oscuro (lo que se ve al abrir) */}
-      <mesh position={[0, 1.08, -0.01]}>
-        <planeGeometry args={[1.1, 2.16]} />
-        <meshBasicMaterial color={C.green} />
-      </mesh>
+      <Doorway to={to} />
       {/* marco */}
       <RBox size={[0.16, 2.35, 0.16]} position={[-0.63, 1.17, 0.02]} color={C.white} radius={0.04} outline />
       <RBox size={[0.16, 2.35, 0.16]} position={[0.63, 1.17, 0.02]} color={C.white} radius={0.04} outline />
@@ -105,6 +101,47 @@ function LockPanel({ locked }) {
       <mesh ref={led} position={[0, -0.14, 0.035]}>
         <circleGeometry args={[0.022, 16]} />
         <meshBasicMaterial color="#FF3B30" />
+      </mesh>
+    </group>
+  )
+}
+
+/* Vano de la puerta: tapa molduras y zócalo de la pared y deja ver la luz de la otra habitación */
+function Doorway({ to }) {
+  const tex = useMemo(() => {
+    const glow = to === 'exit' ? '#CFEAF7' : ROOM_THEME[to]?.wall || '#F3E1C7'
+    const cv = document.createElement('canvas')
+    cv.width = 8
+    cv.height = 128
+    const g = cv.getContext('2d')
+    const grad = g.createLinearGradient(0, 0, 0, 128)
+    grad.addColorStop(0, '#16302B')
+    grad.addColorStop(0.45, '#2A4A43')
+    grad.addColorStop(1, glow)
+    g.fillStyle = grad
+    g.fillRect(0, 0, 8, 128)
+    const t = new THREE.CanvasTexture(cv)
+    t.colorSpace = THREE.SRGBColorSpace
+    return t
+  }, [to])
+  return (
+    <group>
+      {/* fondo del vano, por delante de todo lo que hay pegado a la pared */}
+      <mesh position={[0, 1.08, 0.016]}>
+        <planeGeometry args={[1.12, 2.16]} />
+        <meshBasicMaterial map={tex} toneMapped={false} />
+      </mesh>
+      {/* jambas interiores para que el vano tenga profundidad */}
+      {[-0.56, 0.56].map((x) => (
+        <mesh key={x} position={[x, 1.08, 0.03]}>
+          <boxGeometry args={[0.02, 2.16, 0.03]} />
+          <meshBasicMaterial color="#0F2622" />
+        </mesh>
+      ))}
+      {/* umbral en el piso */}
+      <mesh position={[0, 0.012, 0.09]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[1.12, 0.16]} />
+        <meshBasicMaterial color="#B98A5E" />
       </mesh>
     </group>
   )

@@ -340,7 +340,7 @@ export function Bubble({ position = [0, 2, 0], color = C.orange }) {
   return (
     <group ref={g} position={position}>
       <mesh rotation={[Math.PI, 0, 0]}>
-        <coneGeometry args={[0.1, 0.16, 4]} />
+        <coneGeometry args={[0.075, 0.13, 4]} />
         <meshBasicMaterial color={color} />
       </mesh>
     </group>

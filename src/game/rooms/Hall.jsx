@@ -103,7 +103,7 @@ export function Hall() {
       <CoffeeTable position={[0, 0, -1.75]} />
       <Cat position={[1.75, 0, -1.25]} ry={-0.6} />
 
-      <FloorLamp position={[-1.6, 0, -3.5]} />
+      <FloorLamp position={[-3.75, 0, -3.5]} />
       <FloorLamp position={[4.3, 0, -3.45]} color={C.peach} />
       <Bookshelf position={[4.73, 0, -1.4]} ry={-Math.PI / 2} w={1.5} />
       <Plant position={[-4.4, 0, -3.45]} size={1.2} />
