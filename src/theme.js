@@ -35,6 +35,7 @@ export const ROOM_THEME = {
   proyectos: { wall: '#D7EBDD', trim: '#AFD3BA', rug: '#8DB596', rug2: '#CFE8D5', bg: '#E5F3EA' },
   skills: { wall: '#F8E8B8', trim: '#EBCF86', rug: '#F2B66D', rug2: '#FBE2B0', bg: '#FFF4D9' },
   sobremi: { wall: '#E7DDF3', trim: '#CDBEE6', rug: '#C9B6E4', rug2: '#F1E9FA', bg: '#F3EEFA' },
+  bano: { wall: '#D8EEF0', trim: '#A9D3D8', rug: '#6FB7C9', rug2: '#CFEAEE', bg: '#E6F4F5' },
 }
 
 export const FONT_URL = import.meta.env.BASE_URL + 'fonts/archivo-800.woff'

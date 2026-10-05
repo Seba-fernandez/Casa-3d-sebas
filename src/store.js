@@ -14,12 +14,29 @@ export const useGame = create((set, get) => ({
   menu: false, // mapa abierto
   setMenu: (menu) => set({ menu }),
 
+  // ── modo dueño ──
+  owner: false, // sesión validada con huella / PIN
+  scanner: false, // overlay del escáner abierto
+  carry: null, // { kind: 'skill'|'category'|'project'|'about', label, payload } → objeto en las manos
+  pending: null, // { carry, target } → soltado, esperando Guardar / Descartar
+  toast: null, // { text, tone }
+  setOwner: (owner) => set({ owner }),
+  setScanner: (scanner) => set({ scanner, prompt: null }),
+  setCarry: (carry) => set({ carry, panel: null }),
+  setPending: (pending) => set({ pending }),
+  showToast: (text, tone = 'ok') => {
+    set({ toast: { text, tone, at: Date.now() } })
+    setTimeout(() => {
+      if (Date.now() - (get().toast?.at || 0) >= 2400) set({ toast: null })
+    }, 2500)
+  },
+
   say: (lines, who = null) => set({ dialog: { who, lines: [].concat(lines) }, prompt: null }),
   closeDialog: () => set({ dialog: null }),
 
   setPrompt: (prompt) => {
     const cur = get().prompt
-    if (cur?.id === prompt?.id) return
+    if (cur?.id === prompt?.id && cur?.label === prompt?.label) return
     set({ prompt })
   },
   openPanel: (panel) => set({ panel, prompt: null }),

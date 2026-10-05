@@ -9,7 +9,7 @@ import {
 import { ROOM_THEME, C } from '../../theme'
 import { useData } from '../../data/usePortfolio'
 
-export const DOOR_COLORS = { proyectos: '#5FA777', skills: '#F2A93B', sobremi: '#A98BD6', exit: C.orange }
+export const DOOR_COLORS = { proyectos: '#5FA777', skills: '#F2A93B', sobremi: '#A98BD6', bano: '#6FB7C9', exit: C.orange }
 
 /* Pizarrón de bienvenida con tu nombre */
 function WelcomeBoard({ position, ry = 0 }) {
@@ -37,6 +37,7 @@ export function Hall() {
   const W = 10
   const D = 8
   const person = useData((s) => s.portfolio.person)
+  const owner = useGame((s) => s.owner)
 
   return (
     <RoomShell
@@ -48,6 +49,7 @@ export function Hall() {
         { side: 'n', at: -2.4, to: 'proyectos', label: 'Proyectos', color: DOOR_COLORS.proyectos },
         { side: 'n', at: 2.4, to: 'skills', label: 'Skills', color: DOOR_COLORS.skills },
         { side: 'w', at: 0.4, to: 'sobremi', label: 'Sobre mí', color: DOOR_COLORS.sobremi },
+        { side: 'w', at: -2.6, to: 'bano', label: 'Baño', color: DOOR_COLORS.bano, locked: !owner },
         {
           side: 's',
           at: 0,
@@ -86,7 +88,7 @@ export function Hall() {
       }
       wSide={
         <>
-          <Frame x={-2.2} y={1.65} w={0.55} h={0.7} art={C.butter}>
+          <Frame x={-1.0} y={1.65} w={0.5} h={0.62} art={C.butter}>
             <Label size={0.09} color={C.green} maxWidth={0.5}>UX · Perf · A11y</Label>
           </Frame>
           <Frame x={2.6} y={1.7} w={0.6} h={0.45} art={C.mint}>
@@ -105,7 +107,7 @@ export function Hall() {
       <FloorLamp position={[4.3, 0, -3.45]} color={C.peach} />
       <Bookshelf position={[4.73, 0, -1.4]} ry={-Math.PI / 2} w={1.5} />
       <Plant position={[-4.4, 0, -3.45]} size={1.2} />
-      <Plant position={[-4.4, 0, 3.4]} kind="round" />
+      <Plant position={[-3.3, 0, 3.45]} kind="round" />
       <Plant position={[4.4, 0, 3.4]} size={1.1} />
       <Mailbox position={[3.3, 0, 2.9]} ry={-0.5} />
       <WelcomeBoard position={[-1.9, 0, 2.3]} ry={0.45} />

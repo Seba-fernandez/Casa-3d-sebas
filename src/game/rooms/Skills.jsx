@@ -6,6 +6,8 @@ import { SkillProp } from '../props/objects'
 import { ROOM_THEME, C } from '../../theme'
 import { useData } from '../../data/usePortfolio'
 import { DOOR_COLORS } from './Hall'
+import { DropSpot } from '../../owner/DropSpot'
+import { useGame } from '../../store'
 
 const W = 11
 const D = 8.5
@@ -53,6 +55,7 @@ function SkillShelf({ cat, x, z, ry, idx }) {
 export function Skills() {
   const t = ROOM_THEME.skills
   const skills = useData((s) => s.portfolio.skills) || []
+  const carryKind = useGame((s) => s.carry?.kind)
 
   // Slots: 3 en la pared norte, 2 al oeste, 2 al este (si hay más categorías, se ignoran en 3D y se ven en el panel)
   const slots = [
@@ -93,7 +96,11 @@ export function Skills() {
         return (
           <group key={cat.category}>
             <SkillShelf cat={cat} x={s.x} z={s.z} ry={s.ry} idx={i} />
-            <Spot x={fx} z={fz} r={0.85} label={cat.category} verb="Ver skills" panel={{ type: 'skills', index: i }} />
+            {carryKind === 'skill' ? (
+              <DropSpot kind="skill" x={fx} z={fz} r={0.85} label={`en ${cat.category}`} target={{ index: i }} />
+            ) : (
+              <Spot x={fx} z={fz} r={0.85} label={cat.category} verb="Ver skills" panel={{ type: 'skills', index: i }} />
+            )}
           </group>
         )
       })}
@@ -106,8 +113,9 @@ export function Skills() {
         </group>
       </Desk>
       <Chair position={[-0.15, 0, 1.7]} />
-      <Spot x={0} z={1.75} r={0.8} label="Banco de trabajo" verb="Mirar"
-        say={['En la pantalla hay un Lighthouse en verde.', 'Performance, accesibilidad y semántica no son extras: son el estándar.']} />
+      <DropSpot kind="category" x={0} z={1.75} r={0.9} label="en el banco de trabajo" target={{}} />
+      {carryKind !== 'category' && <Spot x={0} z={1.75} r={0.8} label="Banco de trabajo" verb="Mirar"
+        say={['En la pantalla hay un Lighthouse en verde.', 'Performance, accesibilidad y semántica no son extras: son el estándar.']} />}
 
       <Plant position={[-W / 2 + 0.5, 0, D / 2 - 0.5]} size={1.1} />
       <Plant position={[W / 2 - 0.5, 0, D / 2 - 0.5]} kind="round" />

@@ -3,12 +3,15 @@ import gsap from 'gsap'
 import { input, useGame } from '../store'
 import { useData } from '../data/usePortfolio'
 import { travel } from './transition'
+import { logout } from '../owner/api'
+import { CARRY_INFO } from '../owner/changes'
 
 export const ROOM_NAMES = {
   hall: 'Hall de entrada',
   proyectos: 'Sala de Proyectos',
   skills: 'Taller de Skills',
   sobremi: 'Mi cuarto · Sobre mí',
+  bano: 'Baño privado',
 }
 
 const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -156,6 +159,7 @@ function MapMenu({ open, onClose }) {
   const room = useGame((s) => s.room)
   const setClassic = useGame((s) => s.setClassic)
   const openPanel = useGame((s) => s.openPanel)
+  const owner = useGame((s) => s.owner)
   const first = useRef()
   useEffect(() => {
     if (open) requestAnimationFrame(() => first.current?.focus())
@@ -170,7 +174,7 @@ function MapMenu({ open, onClose }) {
       <nav className="map" aria-label="Mapa de la casa">
         <h2>Mapa</h2>
         <ul>
-          {Object.entries(ROOM_NAMES).map(([id, name], i) => (
+          {Object.entries(ROOM_NAMES).filter(([id]) => id !== 'bano' || owner).map(([id, name], i) => (
             <li key={id}>
               <button ref={i === 0 ? first : null} className={room === id ? 'here' : ''} onClick={() => go(id)}>
                 <span>{name}</span>
@@ -218,7 +222,8 @@ export function HUD() {
         </button>
         <button className="chip-btn" onClick={() => setClassic(true)}>Versión clásica</button>
       </div>
-      {source === 'live' && <p className="live-badge" title="Datos leídos en vivo desde tu portfolio.json">● datos en vivo</p>}
+      {source === 'live' && <p className="live-badge" title="Datos leídos en vivo">● datos en vivo</p>}
+      <OwnerHUD />
       <Prompt touch={touch} />
       <DialogBox />
       {touch && (
@@ -232,6 +237,45 @@ export function HUD() {
       )}
       {!touch && <p className="hint" aria-hidden="true">WASD caminar · arrastrá para mirar · E interactuar · M mapa</p>}
       <MapMenu open={map} onClose={() => setMap(false)} />
+    </>
+  )
+}
+
+/* Insignia de modo dueño, objeto en las manos y avisos */
+function OwnerHUD() {
+  const owner = useGame((s) => s.owner)
+  const carry = useGame((s) => s.carry)
+  const toast = useGame((s) => s.toast)
+  return (
+    <>
+      {owner && (
+        <div className="owner-badge">
+          <span aria-hidden="true">✳</span> Modo dueño
+          <button onClick={() => logout()} aria-label="Salir del modo dueño">Salir</button>
+        </div>
+      )}
+      {carry && (
+        <div className="carry-chip" role="status">
+          <span className="carry-dot" aria-hidden="true" />
+          <span>
+            <strong>Llevás un {CARRY_INFO[carry.kind].thing}: {carry.label}</strong>
+            <small>{CARRY_INFO[carry.kind].where}</small>
+          </span>
+          <button
+            onClick={() => {
+              useGame.getState().setCarry(null)
+              useGame.getState().showToast('Descartado', 'info')
+            }}
+          >
+            Descartar
+          </button>
+        </div>
+      )}
+      {toast && (
+        <div className={'toast toast-' + toast.tone} role="status" key={toast.at}>
+          {toast.text}
+        </div>
+      )}
     </>
   )
 }

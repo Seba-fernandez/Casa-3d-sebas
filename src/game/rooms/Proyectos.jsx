@@ -6,6 +6,7 @@ import { ProjectProp, Screenshot, StatusLamp } from '../props/objects'
 import { ROOM_THEME, C } from '../../theme'
 import { useData, abs } from '../../data/usePortfolio'
 import { DOOR_COLORS } from './Hall'
+import { DropSpot } from '../../owner/DropSpot'
 
 const W = 12
 const D = 9
@@ -179,7 +180,7 @@ export function Proyectos() {
         return (
           <group key={p.id}>
             <Showcase project={p} x={x} z={fz} data={data} />
-            <Spot x={x} z={fz + 0.95} r={0.9} label={p.title} verb="Ver proyecto" panel={{ type: 'project', id: p.id }} marker markerY={2.35 - fz * 0} />
+            <Spot x={x} z={fz + 0.95} r={0.9} label={p.title} verb="Ver proyecto" panel={{ type: 'project', id: p.id }} marker markerY={2.35} />
           </group>
         )
       })}
@@ -190,6 +191,8 @@ export function Proyectos() {
           <Spot x={s.x + (s.side === 'w' ? 0.6 : -0.6)} z={s.z} r={0.8} label={p.title} verb="Ver proyecto" panel={{ type: 'project', id: p.id }} />
         </group>
       ))}
+
+      <DropSpot kind="project" x={0} z={0.6} r={1.0} label="en la mesa de novedades" target={{}} />
 
       <GithubArcade x={W / 2 - 0.7} z={2.9} ry={-Math.PI / 2} count={ghStatus === 'ok' ? repos.length : null} />
       <Spot x={W / 2 - 1.5} z={2.9} r={0.9} label="Arcade GitHub" verb="Jugar" panel={{ type: 'github' }} marker markerY={2.4} />

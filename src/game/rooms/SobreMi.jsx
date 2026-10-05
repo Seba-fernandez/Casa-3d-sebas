@@ -5,6 +5,8 @@ import { Plant, FloorLamp, Bed, Desk, Laptop, Chair, WallWindow, Frame, Bookshel
 import { ROOM_THEME, C } from '../../theme'
 import { useData } from '../../data/usePortfolio'
 import { DOOR_COLORS } from './Hall'
+import { DropSpot } from '../../owner/DropSpot'
+import { useGame } from '../../store'
 
 const W = 9
 const D = 8
@@ -69,6 +71,7 @@ export function SobreMi() {
   const t = ROOM_THEME.sobremi
   const person = useData((s) => s.portfolio.person)
   const exp = person.experience?.[0]
+  const carryKind = useGame((s) => s.carry?.kind)
 
   return (
     <RoomShell
@@ -113,7 +116,11 @@ export function SobreMi() {
       <Plant position={[-W / 2 + 0.5, 0, D / 2 - 0.5]} size={1.15} />
       <Plant position={[W / 2 - 0.5, 0, D / 2 - 0.5]} kind="cactus" size={1.2} />
 
-      <Spot x={1.15} z={-2.35} r={0.8} label="Escritorio" verb="Conocerme" panel={{ type: 'about' }} marker markerY={2.0} />
+      {carryKind === 'about' ? (
+        <DropSpot kind="about" x={1.15} z={-2.35} r={0.9} label="en el escritorio" target={{}} />
+      ) : (
+        <Spot x={1.15} z={-2.35} r={0.8} label="Escritorio" verb="Conocerme" panel={{ type: 'about' }} marker markerY={2.0} />
+      )}
       <Spot x={-3.6} z={0.4} r={0.95} label="Corcho · Experiencia" verb="Leer" panel={{ type: 'experience' }} marker markerY={2.45} />
       <Spot x={1.7} z={D / 2 - 1.15} r={0.9} label="CV y números" verb="Abrir" panel={{ type: 'cv' }} marker markerY={1.6} />
       <Spot x={-1.6} z={D / 2 - 0.9} r={0.9} label="Póster" verb="Leer" say={[person.manifesto || person.bio]} />

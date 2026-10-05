@@ -52,16 +52,20 @@ export function useLoadData() {
     if (started) return
     started = true
 
-    // 1) portfolio.json desde la porta (sin caché del navegador: siempre la última versión)
-    ;(PREVIEW ? Promise.reject() : fetch(PORTFOLIO_URL, { cache: 'no-cache' }))
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+    // 1) Contenido: primero Supabase (lo que editás desde el baño), si no portfolio.json de la porta
+    const getJSON = (url) =>
+      fetch(url, { cache: 'no-cache', credentials: 'same-origin' }).then((r) =>
+        r.ok ? r.json() : Promise.reject(new Error(r.status))
+      )
+    ;(PREVIEW ? Promise.reject() : getJSON('/api/content').then((j) => j.data))
+      .catch(() => getJSON(PORTFOLIO_URL))
       .then((json) => {
         if (!json?.projects) throw new Error('formato inválido')
         useData.setState({ portfolio: json, source: 'live' })
         writeCache(CACHE_KEY, json)
       })
       .catch(() => {
-        // Sin conexión o la porta todavía no publica el JSON: queda la copia local
+        // Sin conexión o sin datos publicados: queda la copia local
       })
 
     // 2) GitHub: primero la función de Vercel (cacheada), si no la API pública directa
@@ -115,4 +119,22 @@ export function timeAgo(iso) {
     v /= k
   }
   return ''
+}
+
+/* ─────────── Guardar cambios (solo dueño) ─────────── */
+// `mutate` recibe una copia del contenido y la modifica; si el servidor acepta, se aplica en la casa.
+export async function saveContent(mutate) {
+  const next = structuredClone(useData.getState().portfolio)
+  mutate(next)
+  const r = await fetch('/api/content', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ data: next }),
+  })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(j.message || (r.status === 401 ? 'Tu sesión venció: escaneá la huella otra vez' : 'No se pudo guardar'))
+  useData.setState({ portfolio: j.data, source: 'live' })
+  writeCache(CACHE_KEY, j.data)
+  return j.data
 }

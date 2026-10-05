@@ -6,10 +6,11 @@ import { Hall } from './rooms/Hall'
 import { Proyectos } from './rooms/Proyectos'
 import { Skills } from './rooms/Skills'
 import { SobreMi } from './rooms/SobreMi'
+import { Bano } from './rooms/Bano'
 import { useControls } from './useControls'
 import { useGame } from '../store'
 
-const ROOMS = { hall: Hall, proyectos: Proyectos, skills: Skills, sobremi: SobreMi }
+const ROOMS = { hall: Hall, proyectos: Proyectos, skills: Skills, sobremi: SobreMi, bano: Bano }
 
 function CurrentRoom() {
   const room = useGame((s) => s.room)

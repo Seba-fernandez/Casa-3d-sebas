@@ -1,11 +1,11 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { Outlines } from '@react-three/drei'
-import { Toon, Spark } from './kit'
+import { Toon } from './kit'
 import { AVATAR as A } from '../avatar.config'
 
-const LINE = { thickness: 0.016, color: '#3B2A22' }
+const LINE = { thickness: 0.016, color: '#2A1A14' }
 
 function Part({ geo, color, outline = true, ...props }) {
   return (
@@ -17,12 +17,17 @@ function Part({ geo, color, outline = true, ...props }) {
   )
 }
 
+/* Media luna (para la sonrisa abierta y los dientes) */
+function useHalfDisc() {
+  return useMemo(() => new THREE.CircleGeometry(1, 20, Math.PI, Math.PI), [])
+}
+
 /**
- * Avatar chibi hecho con primitivas (sin modelos externos): ~1,6 m, cabeza grande, cel-shading.
- * Se anima por código según la velocidad que le pasa el controlador.
+ * Sebas en versión chibi 3D: jopo con reflejo cobrizo, barba corta, bigote,
+ * sonrisa con dientes, remera negra y jean azul. ~1,6 m, cel-shading.
+ * El controlador le pasa la velocidad; `setCarry` cambia a la pose de llevar algo.
  */
 export const Avatar = forwardRef(function Avatar(_, ref) {
-  const root = useRef()
   const body = useRef()
   const head = useRef()
   const armL = useRef()
@@ -30,48 +35,51 @@ export const Avatar = forwardRef(function Avatar(_, ref) {
   const legL = useRef()
   const legR = useRef()
   const eyes = useRef()
-  const state = useRef({ phase: 0, speed: 0, blink: 2.5, wave: 0 })
+  const half = useHalfDisc()
+  const state = useRef({ phase: 0, speed: 0, blink: 2.5, wave: 0, carry: 0, carrying: false })
 
   useImperativeHandle(ref, () => ({
     setSpeed: (v) => (state.current.speed = v),
     wave: () => (state.current.wave = 1.4),
+    setCarry: (on) => (state.current.carrying = on),
   }))
 
   useFrame(({ clock }, dt) => {
     const s = state.current
     const t = clock.elapsedTime
-    const k = Math.min(1, s.speed / 2.6) // 0 quieto · 1 caminando · >1 corriendo
+    const k = Math.min(1, s.speed / 2.6)
     const run = Math.min(1, Math.max(0, (s.speed - 2.8) / 1.6))
     s.phase += dt * (4 + s.speed * 2.6)
+    s.carry = THREE.MathUtils.damp(s.carry, s.carrying ? 1 : 0, 10, dt)
 
     const swing = Math.sin(s.phase)
     const legAmp = 0.65 * k + run * 0.25
-    const armAmp = 0.55 * k + run * 0.35
+    const armAmp = (0.55 * k + run * 0.35) * (1 - s.carry)
 
     legL.current.rotation.x = swing * legAmp
     legR.current.rotation.x = -swing * legAmp
-    armL.current.rotation.x = -swing * armAmp
-    armR.current.rotation.x = swing * armAmp
-    armL.current.rotation.z = 0.12 + (1 - k) * 0.04
-    armR.current.rotation.z = -0.12 - (1 - k) * 0.04
 
-    // saludo
-    if (s.wave > 0) {
+    // brazos: caminata normal mezclada con la pose de cargar (brazos al frente)
+    const carryX = -1.25 + Math.sin(s.phase) * 0.05 * k
+    armL.current.rotation.x = THREE.MathUtils.lerp(-swing * armAmp, carryX, s.carry)
+    armR.current.rotation.x = THREE.MathUtils.lerp(swing * armAmp, carryX, s.carry)
+    armL.current.rotation.z = THREE.MathUtils.lerp(0.12, -0.28, s.carry)
+    armR.current.rotation.z = THREE.MathUtils.lerp(-0.12, 0.28, s.carry)
+
+    if (s.wave > 0 && s.carry < 0.1) {
       s.wave -= dt
       const w = Math.min(1, s.wave * 2)
       armR.current.rotation.z = THREE.MathUtils.lerp(armR.current.rotation.z, -2.6, w)
       armR.current.rotation.x = Math.sin(t * 14) * 0.25 * w
     }
 
-    // rebote, respiración e inclinación
     const bob = Math.abs(Math.cos(s.phase)) * 0.055 * k
     const breathe = Math.sin(t * 2.2) * 0.012 * (1 - k)
     body.current.position.y = bob + breathe
-    body.current.rotation.x = 0.06 * k + run * 0.1
+    body.current.rotation.x = 0.06 * k + run * 0.1 - s.carry * 0.04
     head.current.rotation.x = -0.05 * k + Math.sin(t * 1.3) * 0.02 * (1 - k)
     head.current.rotation.z = Math.sin(t * 0.9) * 0.03 * (1 - k)
 
-    // parpadeo
     s.blink -= dt
     let eyeY = 1
     if (s.blink < 0.12) eyeY = 0.15
@@ -80,133 +88,133 @@ export const Avatar = forwardRef(function Avatar(_, ref) {
   })
 
   return (
-    <group ref={root}>
+    <group>
       <group ref={body}>
-        {/* ── piernas ── */}
+        {/* ── piernas (jean) ── */}
         {[
           [legL, -0.1],
           [legR, 0.1],
         ].map(([r, x]) => (
-          <group key={x} ref={r} position={[x, 0.58, 0]}>
-            <Part geo={<capsuleGeometry args={[0.085, 0.3, 6, 12]} />} color={A.pants} position={[0, -0.24, 0]} />
-            <group position={[0, -0.5, 0.04]}>
+          <group key={x} ref={r} position={[x, 0.6, 0]}>
+            <Part geo={<capsuleGeometry args={[0.09, 0.3, 6, 12]} />} color={A.jeans} position={[0, -0.24, 0]} />
+            <Part geo={<cylinderGeometry args={[0.094, 0.094, 0.05, 14]} />} color={A.jeansDark} position={[0, -0.42, 0]} outline={false} />
+            <group position={[0, -0.52, 0.04]}>
               <Part geo={<boxGeometry args={[0.17, 0.11, 0.27]} />} color={A.shoes} />
               <Part geo={<boxGeometry args={[0.18, 0.035, 0.28]} />} color={A.shoeSole} position={[0, -0.06, 0]} outline={false} />
             </group>
           </group>
         ))}
 
-        {/* ── torso (buzo) ── */}
-        <Part geo={<capsuleGeometry args={[0.2, 0.26, 8, 18]} />} color={A.hoodie} position={[0, 0.84, 0]} scale={[1.08, 1, 0.82]} />
-        <Part geo={<torusGeometry args={[0.13, 0.045, 8, 18]} />} color={A.hoodieTrim} position={[0, 1.07, -0.03]} rotation={[Math.PI / 2 + 0.2, 0, 0]} />
-        {/* bolsillo canguro + cordones + ✳ */}
-        <Part geo={<boxGeometry args={[0.26, 0.1, 0.04]} />} color={A.hoodieTrim} position={[0, 0.7, 0.16]} outline={false} />
-        <Spark size={0.11} color="#FFF9F1" position={[0.08, 0.9, 0.172]} />
-        <mesh position={[-0.05, 0.98, 0.16]}>
-          <cylinderGeometry args={[0.008, 0.008, 0.14]} />
-          <Toon color="#FFF9F1" />
-        </mesh>
-        <mesh position={[0.05, 0.98, 0.16]}>
-          <cylinderGeometry args={[0.008, 0.008, 0.14]} />
-          <Toon color="#FFF9F1" />
-        </mesh>
+        {/* cintura del jean */}
+        <Part geo={<cylinderGeometry args={[0.2, 0.19, 0.12, 18]} />} color={A.jeans} position={[0, 0.64, 0]} scale={[1.05, 1, 0.82]} />
 
-        {A.backpack && (
-          <group position={[0, 0.88, -0.2]}>
-            <Part geo={<boxGeometry args={[0.32, 0.36, 0.14]} />} color={A.backpackColor} />
-            <Part geo={<boxGeometry args={[0.24, 0.12, 0.05]} />} color={A.hoodieTrim} position={[0, -0.08, -0.08]} outline={false} />
-          </group>
-        )}
+        {/* ── torso: remera negra ── */}
+        <Part geo={<capsuleGeometry args={[0.2, 0.24, 8, 18]} />} color={A.tee} position={[0, 0.86, 0]} scale={[1.1, 1, 0.82]} />
+        <Part geo={<torusGeometry args={[0.1, 0.022, 8, 18]} />} color={A.teeTrim} position={[0, 1.08, 0.0]} rotation={[Math.PI / 2 + 0.25, 0, 0]} outline={false} />
+        <Part geo={<cylinderGeometry args={[0.075, 0.08, 0.1, 14]} />} color={A.skin} position={[0, 1.1, 0]} outline={false} />
 
-        {/* ── brazos ── */}
+        {/* ── brazos: manga corta negra + brazo de piel ── */}
         {[
-          [armL, -0.27, 1],
-          [armR, 0.27, -1],
+          [armL, -0.28],
+          [armR, 0.28],
         ].map(([r, x]) => (
           <group key={x} ref={r} position={[x, 1.0, 0]}>
-            <Part geo={<capsuleGeometry args={[0.068, 0.26, 6, 12]} />} color={A.hoodie} position={[0, -0.17, 0]} />
-            <Part geo={<sphereGeometry args={[0.072, 14, 10]} />} color={A.skin} position={[0, -0.38, 0]} />
+            <Part geo={<capsuleGeometry args={[0.078, 0.08, 6, 12]} />} color={A.tee} position={[0, -0.06, 0]} />
+            <Part geo={<capsuleGeometry args={[0.056, 0.22, 6, 12]} />} color={A.skin} position={[0, -0.22, 0]} />
+            <Part geo={<sphereGeometry args={[0.068, 14, 10]} />} color={A.skin} position={[0, -0.38, 0]} />
           </group>
         ))}
 
         {/* ── cabeza ── */}
-        <group ref={head} position={[0, 1.33, 0]}>
-          <Part geo={<sphereGeometry args={[0.255, 28, 20]} />} color={A.skin} scale={[1.02, 0.96, 0.95]} />
+        <group ref={head} position={[0, 1.34, 0]}>
+          <group scale={[1.02, 0.97, 0.95]}>
+            <Part geo={<sphereGeometry args={[0.255, 28, 20]} />} color={A.skin} />
+            {/* barba corta: casquete en la mitad inferior de la cara */}
+            <mesh>
+              <sphereGeometry args={[0.258, 28, 14, Math.PI * 0.12, Math.PI * 0.76, Math.PI * 0.64, Math.PI * 0.26]} />
+              <Toon color={A.beard} />
+            </mesh>
+          </group>
           {/* orejas */}
-          <Part geo={<sphereGeometry args={[0.055, 12, 8]} />} color={A.skin} position={[-0.25, -0.02, 0]} />
-          <Part geo={<sphereGeometry args={[0.055, 12, 8]} />} color={A.skin} position={[0.25, -0.02, 0]} />
+          <Part geo={<sphereGeometry args={[0.055, 12, 8]} />} color={A.skin} position={[-0.25, -0.01, 0]} />
+          <Part geo={<sphereGeometry args={[0.055, 12, 8]} />} color={A.skin} position={[0.25, -0.01, 0]} />
 
-          {/* pelo */}
+          {/* pelo: costados cortos + jopo voluminoso hacia arriba y atrás */}
           <Part
-            geo={<sphereGeometry args={[0.272, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.52]} />}
+            geo={<sphereGeometry args={[0.268, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.5]} />}
             color={A.hair}
-            position={[0, 0.02, -0.015]}
-            rotation={[-0.32, 0, 0]}
+            position={[0, 0.0, -0.02]}
+            rotation={[-0.38, 0, 0]}
           />
-          {A.hairStyle === 'curly'
-            ? Array.from({ length: 9 }).map((_, i) => {
-                const a = (i / 9) * Math.PI * 2
-                return <Part key={i} geo={<sphereGeometry args={[0.09, 10, 8]} />} color={A.hair} position={[Math.cos(a) * 0.2, 0.17, Math.sin(a) * 0.2 - 0.02]} outline={false} />
-              })
-            : [
-                [-0.13, 0.17, 0.17, 0.5],
-                [-0.02, 0.2, 0.19, 0.2],
-                [0.1, 0.18, 0.18, -0.35],
-                ...(A.hairStyle === 'messy' ? [[0.04, 0.29, 0.02, -0.6], [-0.08, 0.28, -0.06, 0.7]] : []),
-              ].map(([x, y, z, rz], i) => (
-                <Part
-                  key={i}
-                  geo={<sphereGeometry args={[0.1, 12, 8]} />}
-                  color={A.hair}
-                  position={[x, y, z]}
-                  rotation={[0.6, 0, rz]}
-                  scale={[0.9, 0.55, 1.2]}
-                  outline={false}
-                />
-              ))}
+          {[
+            // [x, y, z, rotX, rotZ, escala largo, color]
+            [0.0, 0.22, 0.1, -0.75, 0, 1.0, A.hair],
+            [-0.11, 0.21, 0.06, -0.8, 0.3, 0.85, A.hair],
+            [0.11, 0.21, 0.06, -0.8, -0.3, 0.85, A.hair],
+            [0.0, 0.26, -0.02, -1.15, 0.05, 1.0, A.hair],
+            [-0.08, 0.23, -0.1, -1.4, 0.2, 0.85, A.hair],
+            [0.08, 0.23, -0.1, -1.4, -0.2, 0.85, A.hair],
+            [0.02, 0.3, 0.09, -0.55, -0.1, 0.55, A.hairTip],
+          ].map(([x, y, z, rx, rz, l, c], i) => (
+            <Part
+              key={i}
+              geo={<sphereGeometry args={[0.1, 14, 10]} />}
+              color={c}
+              position={[x, y, z]}
+              rotation={[rx, 0, rz]}
+              scale={[1.0, 1.45 * l, 0.85]}
+              outline={i < 3}
+            />
+          ))}
+          {/* patillas */}
+          <Part geo={<boxGeometry args={[0.03, 0.12, 0.06]} />} color={A.hair} position={[-0.245, 0.02, 0.06]} outline={false} />
+          <Part geo={<boxGeometry args={[0.03, 0.12, 0.06]} />} color={A.hair} position={[0.245, 0.02, 0.06]} outline={false} />
 
-          {/* ojos grandes con brillo */}
-          <group ref={eyes} position={[0, -0.02, 0.215]}>
+          {/* cejas gruesas */}
+          {[-1, 1].map((sd) => (
+            <mesh key={sd} position={[sd * 0.085, 0.072, 0.226]} rotation={[0, 0, Math.PI / 2 + sd * 0.14]}>
+              <capsuleGeometry args={[0.016, 0.07, 4, 8]} />
+              <Toon color={A.hair} />
+            </mesh>
+          ))}
+
+          {/* ojos achinados de sonrisa, con brillo */}
+          <group ref={eyes} position={[0, 0.0, 0.226]}>
             {[-0.085, 0.085].map((x) => (
               <group key={x} position={[x, 0, 0]}>
-                <mesh scale={[0.042, 0.06, 0.025]}>
+                <mesh scale={[0.038, 0.034, 0.02]}>
                   <sphereGeometry args={[1, 14, 10]} />
                   <Toon color={A.eyes} />
                 </mesh>
-                <mesh position={[0.014, 0.022, 0.022]}>
-                  <sphereGeometry args={[0.014, 8, 6]} />
+                <mesh position={[0.012, 0.012, 0.018]}>
+                  <sphereGeometry args={[0.01, 8, 6]} />
                   <meshBasicMaterial color="#ffffff" />
                 </mesh>
               </group>
             ))}
           </group>
-          {/* cachetes y sonrisa */}
-          <mesh position={[-0.15, -0.09, 0.19]} scale={[0.045, 0.025, 0.01]}>
-            <sphereGeometry args={[1, 10, 8]} />
-            <meshBasicMaterial color={A.blush} transparent opacity={0.85} />
-          </mesh>
-          <mesh position={[0.15, -0.09, 0.19]} scale={[0.045, 0.025, 0.01]}>
-            <sphereGeometry args={[1, 10, 8]} />
-            <meshBasicMaterial color={A.blush} transparent opacity={0.85} />
-          </mesh>
-          <mesh position={[0, -0.1, 0.236]} rotation={[0.15, 0, Math.PI]}>
-            <torusGeometry args={[0.03, 0.008, 6, 12, Math.PI]} />
-            <Toon color={A.eyes} />
-          </mesh>
-          {A.glasses && (
-            <group position={[0, -0.02, 0.245]}>
-              {[-0.085, 0.085].map((x) => (
-                <mesh key={x} position={[x, 0, 0]}>
-                  <torusGeometry args={[0.07, 0.01, 6, 20]} />
-                  <Toon color={A.eyes} />
-                </mesh>
-              ))}
-            </group>
-          )}
+
+          {/* bigote */}
+          {[-1, 1].map((sd) => (
+            <mesh key={sd} position={[sd * 0.045, -0.083, 0.228]} rotation={[0, 0, Math.PI / 2 + sd * 0.25]}>
+              <capsuleGeometry args={[0.017, 0.055, 4, 8]} />
+              <Toon color={A.beard} />
+            </mesh>
+          ))}
+
+          {/* sonrisa grande con dientes */}
+          <group position={[0, -0.108, 0.226]} rotation={[-0.45, 0, 0]}>
+            <mesh geometry={half} scale={[0.075, 0.05, 1]}>
+              <meshBasicMaterial color={A.mouth} />
+            </mesh>
+            <mesh geometry={half} position={[0, 0, 0.001]} scale={[0.068, 0.024, 1]}>
+              <meshBasicMaterial color={A.teeth} />
+            </mesh>
+          </group>
         </group>
       </group>
 
-      {/* sombra suave de contacto bajo los pies */}
+      {/* sombra suave de contacto */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
         <circleGeometry args={[0.32, 24]} />
         <meshBasicMaterial color="#3B2A22" transparent opacity={0.18} depthWrite={false} />

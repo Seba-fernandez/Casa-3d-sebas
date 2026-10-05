@@ -1,10 +1,12 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useGame } from './store'
 import { useLoadData } from './data/usePortfolio'
 import { HUD } from './ui/HUD'
 import { PanelHost } from './ui/Panels'
 import { StartScreen } from './ui/StartScreen'
 import { Classic } from './ui/Classic'
+import { Scanner } from './owner/Scanner'
+import { checkOwner } from './owner/api'
 
 // El 3D se carga aparte: la versión clásica aparece al instante aunque three.js todavía baje.
 const Game = lazy(() => import('./game/Game'))
@@ -22,6 +24,9 @@ export default function App() {
   useLoadData()
   const classic = useGame((s) => s.classic)
   const [canPlay] = useState(hasWebGL)
+  useEffect(() => {
+    checkOwner() // si ya validaste tu huella hace poco, entrás directo como dueño
+  }, [])
 
   if (!canPlay || classic) return <Classic canPlay={canPlay} />
 
@@ -35,6 +40,7 @@ export default function App() {
       </Suspense>
       <HUD />
       <PanelHost />
+      <Scanner />
       <StartScreen />
       <div id="fade" aria-hidden="true" />
     </>

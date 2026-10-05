@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Avatar } from './Avatar'
+import { Carried } from '../owner/Carried'
 import { world } from './kit'
 import { input, player, useGame } from '../store'
 import { travel } from '../ui/transition'
@@ -57,6 +58,7 @@ export function Player() {
   const pendingSpawn = useRef(true)
   const room = useGame((s) => s.room)
   const spawn = useGame((s) => s.spawn)
+  const carrying = useGame((s) => !!s.carry)
   const camTarget = useRef(new THREE.Vector3())
   const promptTimer = useRef(0)
   const { camera } = useThree()
@@ -65,11 +67,15 @@ export function Player() {
     pendingSpawn.current = true
   }, [room, spawn])
 
+  useEffect(() => {
+    avatar.current?.setCarry(carrying)
+  }, [carrying])
+
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 1 / 30)
     const g = group.current
     const gs = useGame.getState()
-    input.locked = gs.transitioning || !!gs.panel || !!gs.dialog || gs.menu || !gs.started
+    input.locked = gs.transitioning || !!gs.panel || !!gs.dialog || gs.menu || gs.scanner || !gs.started
 
     // ── aparición al entrar a una habitación ──
     if (pendingSpawn.current) {
@@ -210,6 +216,7 @@ export function Player() {
   return (
     <group ref={group}>
       <Avatar ref={avatar} />
+      <Carried />
     </group>
   )
 }

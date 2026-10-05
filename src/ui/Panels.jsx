@@ -3,6 +3,20 @@ import gsap from 'gsap'
 import { input, useGame } from '../store'
 import { useData, abs, timeAgo, PREVIEW } from '../data/usePortfolio'
 import { travel } from './transition'
+import { ConsolePanel, SavePanel } from '../owner/OwnerPanels'
+import { ProjectForm, AboutForm, SkillsEditor, projectFromForm, useOwnerSave } from '../owner/forms'
+
+/* Barra de edición que solo ve el dueño */
+function OwnerBar({ onEdit, label = 'Editar' }) {
+  const owner = useGame((s) => s.owner)
+  if (!owner) return null
+  return (
+    <div className="owner-bar">
+      <span>Modo dueño</span>
+      <button className="btn btn-small" onClick={onEdit}>{label}</button>
+    </div>
+  )
+}
 
 const STATUS = { live: 'Live', wip: 'En progreso', pending: 'Pendiente' }
 
@@ -32,11 +46,59 @@ function Chips({ items, tone }) {
 function ProjectPanel({ id }) {
   const data = useData((s) => s.portfolio)
   const repos = useData((s) => s.github)
+  const [editing, setEditing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const { saving, error, run } = useOwnerSave()
   const p = data.projects.find((x) => x.id === id)
-  if (!p) return <p>Este proyecto ya no está en el portfolio.json.</p>
+  if (!p) return <p>Este proyecto ya no está en la casa.</p>
   const repo = p.repo && repos.find((r) => r.name.toLowerCase() === p.repo.toLowerCase())
+
+  if (editing) {
+    return (
+      <>
+        <p className="eyebrow">Editando proyecto</p>
+        <h2 id="panel-title">{p.title}</h2>
+        <ProjectForm
+          initial={p}
+          submitLabel="Guardar"
+          saving={saving}
+          error={error}
+          onCancel={() => setEditing(false)}
+          onSubmit={async (f) => {
+            const ok = await run((d) => {
+              const i = d.projects.findIndex((x) => x.id === id)
+              d.projects[i] = projectFromForm(f, d.projects[i])
+            }, 'Proyecto actualizado')
+            if (ok) setEditing(false)
+          }}
+        />
+        <div className="danger">
+          {!confirmDelete ? (
+            <button className="btn btn-ghost" onClick={() => setConfirmDelete(true)}>Eliminar proyecto</button>
+          ) : (
+            <>
+              <span>¿Seguro? Se saca de la casa.</span>
+              <button
+                className="btn btn-danger"
+                disabled={saving}
+                onClick={async () => {
+                  const ok = await run((d) => (d.projects = d.projects.filter((x) => x.id !== id)), 'Proyecto eliminado')
+                  if (ok) useGame.getState().closePanel()
+                }}
+              >
+                Sí, eliminar
+              </button>
+              <button className="btn btn-ghost" onClick={() => setConfirmDelete(false)}>No</button>
+            </>
+          )}
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
+      <OwnerBar onEdit={() => setEditing(true)} />
       <p className="eyebrow">
         <span className={'dot dot-' + p.status} /> {STATUS[p.status] || p.status} · {p.label || p.kind}
       </p>
@@ -98,9 +160,21 @@ function GithubPanel() {
 function SkillsPanel({ index = 0 }) {
   const skills = useData((s) => s.portfolio.skills)
   const [i, setI] = useState(index)
+  const [editing, setEditing] = useState(false)
   const cat = skills[i] || skills[0]
+  if (!cat) return <p>No hay skills cargadas.</p>
+  if (editing) {
+    return (
+      <>
+        <p className="eyebrow">Corrigiendo estante</p>
+        <h2 id="panel-title">{cat.category}</h2>
+        <SkillsEditor index={Math.min(i, skills.length - 1)} onDone={() => setEditing(false)} />
+      </>
+    )
+  }
   return (
     <>
+      <OwnerBar onEdit={() => setEditing(true)} label="Corregir estante" />
       <p className="eyebrow">Taller de skills</p>
       <h2 id="panel-title">{cat.category}</h2>
       <div className="tabs" role="tablist" aria-label="Categorías">
@@ -118,8 +192,30 @@ function SkillsPanel({ index = 0 }) {
 
 function AboutPanel() {
   const person = useData((s) => s.portfolio.person)
+  const [editing, setEditing] = useState(false)
+  const { saving, error, run } = useOwnerSave()
+  if (editing) {
+    return (
+      <>
+        <p className="eyebrow">Editando Sobre mí</p>
+        <h2 id="panel-title">{person.name}</h2>
+        <AboutForm
+          person={person}
+          submitLabel="Guardar"
+          saving={saving}
+          error={error}
+          onCancel={() => setEditing(false)}
+          onSubmit={async (fields) => {
+            const ok = await run((d) => Object.assign(d.person, fields), 'Sobre mí actualizado')
+            if (ok) setEditing(false)
+          }}
+        />
+      </>
+    )
+  }
   return (
     <>
+      <OwnerBar onEdit={() => setEditing(true)} />
       <p className="eyebrow">{person.location} · {person.coords}</p>
       <h2 id="panel-title">{person.name}</h2>
       <p className="lead">{person.tagline}</p>
@@ -264,6 +360,8 @@ const PANELS = {
   contact: ContactPanel,
   welcome: WelcomePanel,
   exit: ExitPanel,
+  console: ConsolePanel,
+  save: SavePanel,
 }
 
 /* ─────────── Contenedor modal accesible ─────────── */
@@ -292,7 +390,7 @@ export function PanelHost() {
 
   const trap = (e) => {
     if (e.key !== 'Tab') return
-    const f = box.current.querySelectorAll('a[href], button:not([disabled])')
+    const f = box.current.querySelectorAll('a[href], button:not([disabled]), input, select, textarea')
     if (!f.length) return
     const first = f[0]
     const last = f[f.length - 1]
