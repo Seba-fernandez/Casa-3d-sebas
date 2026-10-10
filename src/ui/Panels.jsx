@@ -1,19 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { input, useGame } from '../store'
-import { useData, abs, timeAgo, PREVIEW } from '../data/usePortfolio'
+import { useData, abs, timeAgo, PREVIEW, PORTA_PANEL_URL } from '../data/usePortfolio'
 import { travel } from './transition'
 import { ConsolePanel, SavePanel } from '../owner/OwnerPanels'
 import { ProjectForm, AboutForm, SkillsEditor, projectFromForm, useOwnerSave } from '../owner/forms'
 
 /* Barra de edición que solo ve el dueño */
-function OwnerBar({ onEdit, label = 'Editar' }) {
+function OwnerBar({ onEdit, label = 'Editar', href }) {
   const owner = useGame((s) => s.owner)
   if (!owner) return null
   return (
     <div className="owner-bar">
       <span>Modo dueño</span>
-      <button className="btn btn-small" onClick={onEdit}>{label}</button>
+      {href ? (
+        <a className="btn btn-small" href={href} target="_blank" rel="noopener noreferrer">{label}</a>
+      ) : (
+        <button className="btn btn-small" onClick={onEdit}>{label}</button>
+      )}
     </div>
   )
 }
@@ -98,7 +102,12 @@ function ProjectPanel({ id }) {
 
   return (
     <>
-      <OwnerBar onEdit={() => setEditing(true)} />
+      {p.source === 'porta' ? (
+        // Viene de la porta: se edita en su panel y aparece en las dos
+        <OwnerBar href={PORTA_PANEL_URL} label="Editar en el panel de la porta ↗" />
+      ) : (
+        <OwnerBar onEdit={() => setEditing(true)} />
+      )}
       <p className="eyebrow">
         <span className={'dot dot-' + p.status} /> {STATUS[p.status] || p.status} · {p.label || p.kind}
       </p>

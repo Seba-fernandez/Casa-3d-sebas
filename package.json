@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Portafolio jugable en 3D de Juan Sebastián Fernandez (JSF®). Lee los datos de portfolio.json y GitHub.",
+  "description": "Portafolio jugable en 3D de Juan Sebastián Fernandez (JSF®). Lee los proyectos del projects.json de la porta, el resto de Supabase y GitHub.",
   "scripts": {
     "dev": "vite",
     "dev:api": "node scripts/dev-api.js",
