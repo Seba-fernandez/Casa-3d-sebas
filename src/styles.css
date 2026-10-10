@@ -143,6 +143,9 @@ kbd {
   box-shadow: 0 5px 0 var(--line); touch-action: manipulation;
 }
 .action:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--line); }
+/* encima de cualquier cartel: con un cartel abierto, el A cierra */
+.action { z-index: 40; transition: background 0.15s, transform 0.12s; }
+.action.closing { background: #fff; color: var(--ink); font-size: 1.9rem; }
 @media (pointer: coarse) {
   .prompt { bottom: 180px; }
   .dialog { bottom: 170px; }
@@ -196,13 +199,6 @@ blockquote { margin: 14px 0; padding: 12px 16px; border-left: 5px solid var(--or
 .email { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 1.15rem; font-weight: 700; }
 .howto { padding-left: 1.1rem; line-height: 2; }
 .exp ul { padding-left: 1.1rem; line-height: 1.5; }
-
-.map { width: min(420px, 100%); background: var(--cream); border: 3px solid var(--line); border-radius: 24px; padding: 22px; box-shadow: var(--shadow); }
-.map h2 { margin: 0 0 12px; color: var(--green); }
-.map ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-.map li button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; min-height: 52px; background: #fff; border: 2.5px solid var(--line); border-radius: 14px; cursor: pointer; font-weight: 700; text-align: left; }
-.map li button.here { background: var(--butter); }
-.map small { color: var(--green-2); font-weight: 600; }
 
 /* ─────────── Versión clásica ─────────── */
 .classic { height: 100%; overflow: auto; background: var(--cream); }
@@ -368,3 +364,64 @@ blockquote { margin: 14px 0; padding: 12px 16px; border-left: 5px solid var(--or
 .choice { text-align: left; display: grid; gap: 4px; padding: 14px; border-radius: 16px; border: 2.5px solid var(--line); background: #fff; cursor: pointer; box-shadow: 0 3px 0 var(--line); font: inherit; }
 .choice:hover { background: var(--mint); }
 .choice span { color: #6d5f57; font-size: 0.88rem; }
+
+
+/* ═══════════ Mapa en planta ═══════════ */
+:root {
+  --map-line: #3b2a22;
+  --map-hall: #f3e3cc;
+  --map-grid: rgba(59, 42, 34, 0.08);
+}
+.map-sheet {
+  position: relative; width: min(860px, 100%); max-height: min(92vh, 900px); overflow: auto;
+  background: var(--cream); border: 3px solid var(--line); border-radius: 26px; box-shadow: var(--shadow);
+  padding: 22px 22px 18px; overscroll-behavior: contain;
+}
+.map-sheet .close { position: absolute; float: none; top: 14px; right: 14px; margin: 0; }
+.map-head { padding-right: 56px; }
+.map-head h2 { margin: 6px 0 12px; font-size: clamp(1.5rem, 4.5vw, 2rem); color: var(--green); letter-spacing: -0.02em; }
+.map-body { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(200px, 1fr); gap: 18px; align-items: start; }
+.floorplan { width: 100%; height: auto; display: block; background: #fbf6ee; border: 2.5px solid var(--line); border-radius: 18px; }
+.map-room { cursor: pointer; }
+.map-room:hover > rect:first-child, .map-room:focus-visible > rect:first-child { stroke: var(--orange); stroke-width: 4; }
+.map-room:focus-visible { outline: none; }
+.map-room.unseen > rect:first-child { opacity: 0.6; }
+.map-room.locked { cursor: not-allowed; }
+.map-name { font: 800 15px var(--font); fill: var(--green); letter-spacing: -0.01em; pointer-events: none; }
+.map-sub { font: 600 10px var(--font); fill: #7a6a5f; pointer-events: none; }
+.map-sub.strong { fill: var(--orange-d); font-weight: 800; }
+.here-ring { stroke: var(--orange); stroke-width: 3; stroke-dasharray: 8 6; animation: march 1s linear infinite; pointer-events: none; }
+@keyframes march { to { stroke-dashoffset: -14; } }
+.map-mark circle { fill: #fff; stroke: var(--map-line); stroke-width: 2; }
+.map-mark text { font: 800 10px var(--font); fill: var(--ink); }
+.map-me circle { fill: var(--orange); stroke: #fff; stroke-width: 2.5; }
+.map-me .pulse { fill: rgba(255, 106, 43, 0.25); stroke: none; transform-box: fill-box; transform-origin: center; animation: ping 1.4s ease-out infinite; }
+.map-me path { fill: var(--orange); stroke: #fff; stroke-width: 1.5; }
+@keyframes ping { from { transform: scale(0.6); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+.map-north circle { fill: #fff; stroke: var(--map-line); stroke-width: 2; }
+.map-north path { fill: var(--orange); }
+.map-north text { font: 800 11px var(--font); fill: var(--ink); }
+.map-legend { display: grid; gap: 10px; min-width: 0; }
+.legend-me { margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.dot-me { width: 14px; height: 14px; border-radius: 50%; background: var(--orange); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--orange); flex: none; }
+.legend-group { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 8px 12px 6px; }
+.legend-group.current { background: var(--butter); }
+.legend-group h3 { margin: 0 0 4px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--green-2); }
+.legend-group ol { margin: 0; padding-left: 1.6rem; font-size: 0.92rem; line-height: 1.55; }
+.legend-group li::marker { font-weight: 800; color: var(--orange-d); }
+.map-actions { margin-top: 14px; }
+@media (max-width: 680px) {
+  .map-sheet { padding: 18px 14px 14px; }
+  .map-body { grid-template-columns: 1fr; }
+  .map-legend { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .legend-me { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .here-ring, .map-me .pulse { animation: none; }
+}
+
+/* Celu: los carteles terminan arriba del botón A, que queda visible para cerrarlos (va al final para ganarle a las reglas base) */
+@media (pointer: coarse) {
+  .scrim, .scanner-scrim, .alert { padding-bottom: 136px; }
+  .panel, .map-sheet, .crt { max-height: calc(100dvh - 168px); }
+}

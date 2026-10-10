@@ -6,3 +6,4 @@ dist-preview
 *.log
 .env.local
 .env
+qa-salida

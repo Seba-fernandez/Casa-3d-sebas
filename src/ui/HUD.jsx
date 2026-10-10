@@ -5,6 +5,8 @@ import { useData } from '../data/usePortfolio'
 import { travel } from './transition'
 import { logout } from '../owner/api'
 import { CARRY_INFO } from '../owner/changes'
+import { MapView } from './MapView'
+import { actionButton, topOverlay } from './overlays'
 
 export const ROOM_NAMES = {
   hall: 'Hall de entrada',
@@ -45,7 +47,7 @@ function Prompt({ touch }) {
   const dialog = useGame((s) => s.dialog)
   if (!prompt || dialog) return null
   return (
-    <button className="prompt" onClick={() => (input.interact = true)}>
+    <button className="prompt" onClick={actionButton}>
       <kbd aria-hidden="true">{touch ? 'A' : 'E'}</kbd>
       <span>
         <strong>{prompt.verb}</strong> · {prompt.label}
@@ -89,7 +91,7 @@ function DialogBox() {
 
   if (!dialog) return null
   return (
-    <div className="dialog" role="status" onClick={() => window.dispatchEvent(new CustomEvent('dialog:next'))}>
+    <div className="dialog" role="status" onClick={actionButton}>
       {dialog.who && <span className="who">{dialog.who}</span>}
       <p>{shown}</p>
       <span className="next" aria-hidden="true">▼</span>
@@ -154,50 +156,6 @@ function Joystick() {
   )
 }
 
-function MapMenu({ open, onClose }) {
-  const visited = useGame((s) => s.visited)
-  const room = useGame((s) => s.room)
-  const setClassic = useGame((s) => s.setClassic)
-  const openPanel = useGame((s) => s.openPanel)
-  const owner = useGame((s) => s.owner)
-  const first = useRef()
-  useEffect(() => {
-    if (open) requestAnimationFrame(() => first.current?.focus())
-  }, [open])
-  if (!open) return null
-  const go = (r) => {
-    onClose()
-    goToRoom(r)
-  }
-  return (
-    <div className="scrim" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
-      <nav className="map" aria-label="Mapa de la casa">
-        <h2>Mapa</h2>
-        <ul>
-          {Object.entries(ROOM_NAMES).filter(([id]) => id !== 'bano' || owner).map(([id, name], i) => (
-            <li key={id}>
-              <button ref={i === 0 ? first : null} className={room === id ? 'here' : ''} onClick={() => go(id)}>
-                <span>{name}</span>
-                <small>{room === id ? 'Estás acá' : visited[id] ? 'Visitada' : 'Sin explorar'}</small>
-              </button>
-            </li>
-          ))}
-          <li>
-            <button onClick={() => { onClose(); openPanel({ type: 'contact' }) }}>
-              <span>Contacto</span>
-              <small>Buzón</small>
-            </button>
-          </li>
-        </ul>
-        <div className="links">
-          <button className="btn" onClick={() => { onClose(); setClassic(true) }}>Versión clásica (sin 3D)</button>
-          <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
-        </div>
-      </nav>
-    </div>
-  )
-}
-
 export function HUD() {
   const started = useGame((s) => s.started)
   const setClassic = useGame((s) => s.setClassic)
@@ -205,12 +163,9 @@ export function HUD() {
   const map = useGame((s) => s.menu)
   const setMap = useGame((s) => s.setMenu)
   const [touch] = useState(() => window.matchMedia?.('(pointer: coarse)').matches)
-
-  useEffect(() => {
-    const t = () => setMap(!useGame.getState().menu)
-    window.addEventListener('map:toggle', t)
-    return () => window.removeEventListener('map:toggle', t)
-  }, [setMap])
+  // con un cartel abierto, el botón A cierra (en un diálogo, avanza el texto)
+  const overlay = useGame((s) => topOverlay(s))
+  const closing = overlay && overlay !== 'dialog'
 
   if (!started) return null
   return (
@@ -228,15 +183,18 @@ export function HUD() {
       <DialogBox />
       {touch && (
         <>
-          <Joystick />
-          <button className="action" onClick={() => {
-            if (useGame.getState().dialog) window.dispatchEvent(new CustomEvent('dialog:next'))
-            else input.interact = true
-          }} aria-label="Interactuar">A</button>
+          {!overlay && <Joystick />}
+          <button
+            className={'action' + (closing ? ' closing' : '')}
+            onClick={actionButton}
+            aria-label={closing ? 'Cerrar cartel' : overlay === 'dialog' ? 'Seguir leyendo' : 'Interactuar'}
+          >
+            {closing ? '✕' : 'A'}
+          </button>
         </>
       )}
-      {!touch && <p className="hint" aria-hidden="true">WASD caminar · arrastrá para mirar · E interactuar · M mapa</p>}
-      <MapMenu open={map} onClose={() => setMap(false)} />
+      {!touch && <p className="hint" aria-hidden="true">WASD caminar · arrastrá para mirar · E interactuar / cerrar · M mapa</p>}
+      <MapView open={map} onClose={() => setMap(false)} />
     </>
   )
 }

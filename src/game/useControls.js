@@ -1,34 +1,75 @@
 import { useEffect } from 'react'
 import { input, useGame } from '../store'
+import { topOverlay, closeTop, actionButton, initBackButton } from '../ui/overlays'
 
 const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight'])
 
 /* Teclado global + arrastrar para girar la cámara + rueda para acercar */
 export function useControls(canvasEl) {
   useEffect(() => {
+    initBackButton()
     const onKeyDown = (e) => {
       const g = useGame.getState()
       if (g.classic) return
-      const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)
-      if (typing) return
+      const el = document.activeElement
+      const typing = /INPUT|TEXTAREA|SELECT/.test(el?.tagName) || el?.isContentEditable
+      const top = topOverlay(g)
 
+      // Esc siempre cierra el cartel de arriba (aunque estés escribiendo en un formulario)
       if (e.code === 'Escape') {
-        if (g.panel) g.closePanel()
-        else if (g.dialog) g.closeDialog()
+        if (top) {
+          e.preventDefault()
+          closeTop()
+        }
         return
       }
-      if (g.panel) return // el panel maneja su propio teclado
+      // el escáner maneja sus números, Enter y Retroceso; acá solo la E para salir
+      if (top === 'scanner') {
+        if (e.code === 'KeyE') {
+          e.preventDefault()
+          closeTop()
+        }
+        return
+      }
+      if (typing) return
+
+      if (top) {
+        // Retroceso = "volver": cierra el cartel de arriba
+        if (e.code === 'Backspace') {
+          e.preventDefault()
+          closeTop()
+          return
+        }
+        // E: en un diálogo avanza el texto; en un cartel lo cierra
+        if (e.code === 'KeyE') {
+          e.preventDefault()
+          actionButton()
+          return
+        }
+        // Enter/Espacio: si el foco está en un botón o link del cartel, que haga lo suyo
+        if (e.code === 'Enter' || e.code === 'Space') {
+          if (top === 'dialog') {
+            e.preventDefault()
+            actionButton()
+          }
+          return
+        }
+        if (e.code === 'KeyM' && top === 'menu') {
+          e.preventDefault()
+          closeTop()
+        }
+        return
+      }
 
       if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') {
-        // si el foco está en un botón de la UI, que el botón haga lo suyo
-        if (document.activeElement && document.activeElement.tagName === 'BUTTON' && e.code !== 'KeyE') return
+        if (el && (el.tagName === 'BUTTON' || el.tagName === 'A') && e.code !== 'KeyE') return
         e.preventDefault()
-        if (g.dialog) window.dispatchEvent(new CustomEvent('dialog:next'))
-        else if (g.started) input.interact = true
+        actionButton()
         return
       }
       if (e.code === 'KeyM' && g.started) {
-        window.dispatchEvent(new CustomEvent('map:toggle'))
+        e.preventDefault()
+        g.setMenu(true)
         return
       }
       if (MOVE_KEYS.has(e.code)) {
@@ -53,7 +94,7 @@ export function useControls(canvasEl) {
     if (!el) return
     let drag = null
     const down = (e) => {
-      if (useGame.getState().panel) return
+      if (topOverlay()) return
       drag = { id: e.pointerId, x: e.clientX, y: e.clientY }
       el.setPointerCapture?.(e.pointerId)
       el.style.cursor = 'grabbing'

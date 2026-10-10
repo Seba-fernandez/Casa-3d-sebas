@@ -331,8 +331,8 @@ function WelcomePanel() {
       <ul className="howto">
         <li><kbd>W A S D</kbd> o flechas para caminar · <kbd>Shift</kbd> para correr</li>
         <li>Arrastrá con el mouse para girar la cámara · rueda para acercar</li>
-        <li><kbd>E</kbd> para interactuar · <kbd>M</kbd> para el mapa · <kbd>Esc</kbd> para cerrar</li>
-        <li>En el celu: joystick a la izquierda, botón de acción a la derecha</li>
+        <li><kbd>E</kbd> para interactuar y también para cerrar carteles · <kbd>M</kbd> mapa · <kbd>Esc</kbd> o el botón atrás también cierran</li>
+        <li>En el celu: joystick a la izquierda, botón A a la derecha (con un cartel abierto se vuelve ✕ y lo cierra)</li>
       </ul>
       <div className="links">
         <button className="btn btn-primary" onClick={() => go('proyectos')}>Ir a Proyectos</button>

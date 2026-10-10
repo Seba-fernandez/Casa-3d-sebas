@@ -37,6 +37,18 @@ export function Scanner() {
 
   const close = () => setScanner(false)
 
+  // si se cierra la ALERTA por cualquier vía (botón, Esc, atrás, E, A), la casa te aleja de la puerta
+  const lastStep = useRef(step)
+  useEffect(() => {
+    if (open) lastStep.current = step
+  }, [open, step])
+  useEffect(() => {
+    if (!open && lastStep.current === 'alert') {
+      lastStep.current = 'code'
+      knockback()
+    }
+  }, [open])
+
   const knockback = () => {
     // la casa te aleja de la puerta del baño
     const wx = -5 + 1.6
@@ -83,7 +95,6 @@ export function Scanner() {
   useEffect(() => {
     if (!open) return
     const onKey = (e) => {
-      if (e.key === 'Escape') return close()
       if (step !== 'code') return
       if (/^[0-9]$/.test(e.key)) setCode((c) => (c + e.key).slice(0, 12))
       if (e.key === 'Backspace') setCode((c) => c.slice(0, -1))
@@ -111,10 +122,7 @@ export function Scanner() {
             ref={first}
             className="btn btn-primary"
             autoFocus
-            onClick={() => {
-              close()
-              knockback()
-            }}
+            onClick={close}
           >
             Volver al hall
           </button>

@@ -44,6 +44,8 @@ function Lights() {
 
 export default function Game({ paused }) {
   const wrap = useRef()
+  // con un cartel tapando la pantalla la escena no se mueve: dejamos de dibujar para ahorrar batería y CPU
+  const covered = useGame((s) => s.scanner || !!s.panel || s.menu)
   const [dpr, setDpr] = useState(() => Math.min(1.75, window.devicePixelRatio || 1))
   useControls(wrap)
   return (
@@ -52,7 +54,7 @@ export default function Game({ paused }) {
         shadows="percentage"
         flat
         dpr={dpr}
-        frameloop={paused ? 'never' : 'always'}
+        frameloop={paused ? 'never' : covered ? 'demand' : 'always'}
         camera={{ fov: 48, near: 0.1, far: 80, position: [0, 6, 10] }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
