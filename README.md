@@ -63,17 +63,17 @@ Cada guardado deja la versión anterior en la tabla `casa_content_history`, por 
 ## Cómo se conectan los datos
 
 ```
-Baño (modo dueño) ──► /api/content ──► Supabase (casa_content) ──┐
-tu porta ──► /data/portfolio.json (respaldo) ─────────────────────┼──► la casa 3D
-GitHub API ──► /api/github (caché 1 h) ───────────────────────────┘
+Panel de la porta (/panel) ──► projects.json de la porta ──► proyectos de la casa
+Baño (modo dueño) ──► /api/content ──► Supabase ─────────────► persona, skills, contacto
+GitHub API ──► /api/github (caché 1 h) ──────────────────────► máquina arcade y último push
 ```
 
-- **Supabase** es la fuente principal: ya está cargado con tus datos actuales. `/api/content` es público para leer (tu porta también puede usarlo) y solo acepta cambios con sesión de dueño.
-- **`portfolio.json`**: textos, proyectos, skills, contacto. Instrucciones en `para-tu-porta/LEEME.md`. Se lee sin caché del navegador, así que un push a tu porta se ve al recargar la casa.
-- **GitHub**: `api/github.js` trae tus repos públicos y los cachea una hora en el CDN. Se ven en la máquina arcade de la sala de Proyectos y en el panel de cada proyecto que tenga `"repo"`.
-- **Respaldo**: si algo falla, usa `src/data/portfolio.fallback.json` (copia de tus datos actuales). Nunca queda vacía.
+- **Proyectos:** la casa lee `https://juansebastianfernandez-dev.vercel.app/data/projects.json`, el mismo archivo que guarda el panel de la porta. Cargás o editás un proyecto ahí y aparece en las dos al recargar. El objeto 3D, el color y el estado (live, en curso, pendiente) se eligen en el panel, en "En la casa 3D". En modo dueño, el botón de un proyecto abre ese panel.
+- **Persona, skills y contacto:** Supabase, editable desde el baño. Si Supabase no está configurado, usa `src/data/portfolio.fallback.json`.
+- **GitHub:** `api/github.js` trae tus repos públicos y los cachea una hora en el CDN.
+- **Sin conexión:** la casa recuerda lo último que leyó; si nunca leyó nada, usa la copia local. Nunca queda vacía.
 
-La URL del JSON se puede cambiar con la variable `VITE_PORTFOLIO_URL`.
+La URL de los proyectos se puede cambiar con la variable `VITE_PROJECTS_URL`.
 
 ## Personalizar
 
@@ -123,7 +123,6 @@ v0 rinde mejor para pantallas de interfaz que para mundos 3D. Lo que tiene senti
 
 ## Pendientes
 
-- [ ] Publicar `portfolio.json` en tu porta (ver `para-tu-porta/LEEME.md`).
 - [ ] Ajustar `src/avatar.config.js` a tu pelo, piel y estilo.
 - [ ] Probar en tu celu y en una compu lenta; si va justo, bajar `shadow-mapSize` en `Game.jsx`.
 - [ ] Música y sonidos suaves (pasos, puertas) con un botón de silencio.
