@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
-import { RoomCtx, Toon, RBox, wallPoint } from './kit'
+import { RoomCtx, Toon, RBox, wallPoint, NoCast } from './kit'
 import { world } from './kit'
 import { C } from '../theme'
 import { Door, DoorMat } from './props/Door'
@@ -83,7 +83,7 @@ function Wall({ side, w, d, h, theme, children }) {
           <boxGeometry args={[len, 0.92, 0.02]} />
           <Toon color={'#' + new THREE.Color(theme.wall).lerp(new THREE.Color(theme.trim), 0.4).getHexString()} />
         </mesh>
-        {children}
+        <NoCast>{children}</NoCast>
       </group>
     </group>
   )

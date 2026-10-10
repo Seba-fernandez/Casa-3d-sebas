@@ -123,9 +123,16 @@ function Joystick() {
       input.joy.x = dx / R
       input.joy.y = -dy / R
     }
+    const reset = () => {
+      id = null
+      input.joyActive = false
+      input.joy.x = input.joy.y = 0
+      if (knob.current) knob.current.style.transform = ''
+    }
     const down = (e) => {
       id = e.pointerId
       el.setPointerCapture(id)
+      input.joyActive = true
       setActive(true)
       set(e)
       e.stopPropagation()
@@ -133,20 +140,24 @@ function Joystick() {
     const move = (e) => e.pointerId === id && set(e)
     const up = (e) => {
       if (e.pointerId !== id) return
-      id = null
+      reset()
       setActive(false)
-      knob.current.style.transform = ''
-      input.joy.x = input.joy.y = 0
     }
     el.addEventListener('pointerdown', down)
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
     el.addEventListener('pointercancel', up)
+    el.addEventListener('lostpointercapture', up) // el sistema le robó el dedo (notificación, gesto, etc.)
+    window.addEventListener('pointerup', up) // por las dudas: soltar en cualquier lado suelta el joystick
     return () => {
       el.removeEventListener('pointerdown', down)
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up)
       el.removeEventListener('pointercancel', up)
+      el.removeEventListener('lostpointercapture', up)
+      window.removeEventListener('pointerup', up)
+      // se esconde al abrir un cartel: si quedaba inclinado, el personaje seguía caminando solo al cerrarlo
+      reset()
     }
   }, [])
   return (

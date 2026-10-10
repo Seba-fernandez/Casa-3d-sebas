@@ -52,6 +52,7 @@ export const useGame = create((set, get) => ({
 export const input = {
   keys: new Set(),
   joy: { x: 0, y: 0 }, // -1..1 del joystick táctil
+  joyActive: false, // hay un dedo sobre el joystick
   run: false,
   yaw: Math.PI, // cámara: giro horizontal
   pitch: 0.42, // cámara: inclinación

@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
 import { RoundedBox, Outlines, Text } from '@react-three/drei'
 import { C, FONT_URL } from '../theme'
 
@@ -92,6 +93,27 @@ export function Label({ children, size = 0.16, color = C.ink, weight, maxWidth, 
       {children}
     </Text>
   )
+}
+
+/*
+ * Lo que va colgado de una pared (cuadros, ventanas, puertas, carteles) no proyecta sombra:
+ * las paredes no tapan la luz, así que esas sombras caían al piso sueltas, como flotando.
+ * Revisa cada tanto porque algunos hijos se montan después (texturas, textos, candado del baño).
+ */
+export function NoCast({ children }) {
+  const g = useRef()
+  const t = useRef(0)
+  const strip = () => g.current?.traverse((o) => {
+    if (o.castShadow) o.castShadow = false
+  })
+  useLayoutEffect(strip)
+  useFrame((_, dt) => {
+    t.current -= dt
+    if (t.current > 0) return
+    t.current = 0.3
+    strip()
+  })
+  return <group ref={g}>{children}</group>
 }
 
 /* ─────────────── Mundo: colisiones, interacciones y spawns ─────────────── */

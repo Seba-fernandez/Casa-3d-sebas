@@ -3,6 +3,21 @@ import { input, useGame } from '../store'
 import { topOverlay, closeTop, actionButton, initBackButton } from '../ui/overlays'
 
 const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight'])
+const MODIFIERS = new Set(['Meta', 'Control', 'Alt', 'OS'])
+const TAP_MOVE = 6 // px: menos que esto es un toque/clic, no un arrastre de cámara
+const TAP_MS = 400
+
+/*
+ * Frena al personaje: suelta teclas y joystick. Si la tecla sigue apretada de verdad,
+ * la auto-repetición del teclado la vuelve a cargar al instante, así que no molesta.
+ */
+export function stopWalking(all = false) {
+  input.keys.clear()
+  if (all || !input.joyActive) {
+    input.joy.x = 0
+    input.joy.y = 0
+  }
+}
 
 /* Teclado global + arrastrar para girar la cámara + rueda para acercar */
 export function useControls(canvasEl) {
@@ -77,15 +92,27 @@ export function useControls(canvasEl) {
         input.keys.add(e.code)
       }
     }
-    const onKeyUp = (e) => input.keys.delete(e.code)
-    const onBlur = () => input.keys.clear()
+    const onKeyUp = (e) => {
+      // Con Cmd/Ctrl/Alt apretado el navegador a veces se "come" el keyup de la otra tecla
+      // (Cmd+W, Alt+Tab, atajos del sistema): al soltar el modificador soltamos todo.
+      if (MODIFIERS.has(e.key)) input.keys.clear()
+      else input.keys.delete(e.code)
+    }
+    const release = () => stopWalking(true)
+    const onVisibility = () => document.hidden && release()
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
-    window.addEventListener('blur', onBlur)
+    window.addEventListener('blur', release)
+    window.addEventListener('contextmenu', release) // el menú del clic derecho también se traga el keyup
+    window.addEventListener('dragstart', release) // y el arrastre nativo del navegador
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
-      window.removeEventListener('blur', onBlur)
+      window.removeEventListener('blur', release)
+      window.removeEventListener('contextmenu', release)
+      window.removeEventListener('dragstart', release)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [])
 
@@ -95,7 +122,8 @@ export function useControls(canvasEl) {
     let drag = null
     const down = (e) => {
       if (topOverlay()) return
-      drag = { id: e.pointerId, x: e.clientX, y: e.clientY }
+      if (e.button > 0) return // solo clic izquierdo / dedo
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now() }
       el.setPointerCapture?.(e.pointerId)
       el.style.cursor = 'grabbing'
     }
@@ -108,6 +136,14 @@ export function useControls(canvasEl) {
       drag.y = e.clientY
     }
     const up = (e) => {
+      if (drag?.id !== e.pointerId) return
+      // un toque/clic corto sobre la escena (sin arrastrar) = "pará": si algo quedó trabado, se frena
+      const tap = e.type === 'pointerup' && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < TAP_MOVE && performance.now() - drag.t0 < TAP_MS
+      drag = null
+      el.style.cursor = 'grab'
+      if (tap) stopWalking()
+    }
+    const lost = (e) => {
       if (drag?.id === e.pointerId) drag = null
       el.style.cursor = 'grab'
     }
@@ -121,12 +157,14 @@ export function useControls(canvasEl) {
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
     el.addEventListener('pointercancel', up)
+    el.addEventListener('lostpointercapture', lost)
     el.addEventListener('wheel', wheel, { passive: false })
     return () => {
       el.removeEventListener('pointerdown', down)
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up)
       el.removeEventListener('pointercancel', up)
+      el.removeEventListener('lostpointercapture', lost)
       el.removeEventListener('wheel', wheel)
     }
   }, [canvasEl])

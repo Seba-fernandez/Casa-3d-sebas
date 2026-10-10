@@ -28,6 +28,9 @@ def openers(page):
 def is_open(s, kind):
     return {'map': s['menu'], 'panel': bool(s['panel']), 'dialog': s['dialog'], 'scanner': s['scanner']}[kind]
 
+def mv(page):
+    return page.evaluate("() => { const c = window.__casa; return { keys: c.input.keys.size, joy: Math.hypot(c.input.joy.x, c.input.joy.y) } }")
+
 def back(page):
     page.evaluate("() => history.back()")
     time.sleep(0.6)
@@ -154,6 +157,20 @@ with sync_playwright() as p:
     check('mapa: el baño bloqueado no te deja pasar', s['room'] == 'skills' and s['menu'])
     page.keyboard.press('Escape'); time.sleep(0.4)
 
+    # caminar no se traba: arrastrar la cámara no frena, un clic corto sí (aunque se haya perdido el keyup)
+    page.keyboard.down('w'); time.sleep(0.5)
+    page.mouse.move(600, 300); page.mouse.down(); page.mouse.move(700, 320, steps=6); page.mouse.up(); time.sleep(0.3)
+    walking = mv(page)['keys'] == 1
+    page.mouse.click(480, 200); time.sleep(0.3)  # W sigue "apretada" para el navegador: simula un keyup perdido
+    check('caminar: arrastrar la cámara no frena, un clic sobre la escena sí', walking and mv(page)['keys'] == 0)
+    page.keyboard.up('w')
+    page.keyboard.down('d'); page.keyboard.down('Meta'); page.keyboard.up('Meta'); time.sleep(0.3)
+    check('caminar: soltar Cmd/Ctrl/Alt suelta las teclas (el sistema se come el keyup)', mv(page)['keys'] == 0)
+    page.keyboard.up('d')
+    page.keyboard.down('a'); page.evaluate("() => window.dispatchEvent(new MouseEvent('contextmenu'))"); time.sleep(0.3)
+    check('caminar: el menú del clic derecho suelta las teclas', mv(page)['keys'] == 0)
+    page.keyboard.up('a')
+
     # atrás sin carteles abiertos: sale del sitio normalmente (no quedan entradas "trampa")
     page.evaluate("() => window.__casa.useGame.getState().setMenu(true)"); time.sleep(0.3)
     page.keyboard.press('Escape'); time.sleep(0.6)
@@ -215,6 +232,16 @@ with sync_playwright() as p:
     s = state(m)
     check('celu: atrás del teléfono cierra el cartel y no sale', not s['panel'] and s['started'])
     check('celu: A vuelve a decir A sin carteles', a_btn.inner_text().strip() == 'A')
+    # joystick inclinado + se abre un cartel: al cerrarlo el personaje NO sigue caminando solo
+    box = m.locator('.joystick').bounding_box()
+    cx, cy = box['x'] + box['width'] / 2, box['y'] + box['height'] / 2
+    m.mouse.move(cx, cy); m.mouse.down(); m.mouse.move(cx, cy - 45, steps=4); time.sleep(0.4)
+    held = mv(m)['joy'] > 0.5
+    m.evaluate(O['dialog']); time.sleep(0.5)
+    m.mouse.up(); time.sleep(0.2)
+    m.evaluate("() => window.__casa.useGame.getState().closeDialog()"); time.sleep(0.6)
+    check('celu: cerrar un cartel con el joystick inclinado no te deja caminando solo', held and mv(m)['joy'] == 0)
+
     check('celu: sin errores de JavaScript', not merrs, '; '.join(merrs[:3]))
     b.close()
 

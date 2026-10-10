@@ -23,13 +23,15 @@ function Lights() {
     <>
       <hemisphereLight args={['#FFF4E2', '#C98E6A', 1.55]} />
       <ambientLight intensity={0.25} />
+      {/* luz casi cenital: las sombras quedan pegadas a cada cosa en vez de estirarse lejos */}
       <directionalLight
-        position={[4, 9, 5]}
+        position={[1.6, 10, 2.4]}
         intensity={1.9}
         color="#FFE6C7"
         castShadow
         shadow-mapSize={[1536, 1536]}
         shadow-bias={-0.0004}
+        shadow-radius={2.5}
         shadow-normalBias={0.03}
         shadow-camera-left={-8}
         shadow-camera-right={8}
